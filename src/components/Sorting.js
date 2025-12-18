@@ -1,58 +1,51 @@
 import {
-  RESULTS_PER_PAGE,
   state,
-  paginationEl,
-  paginationNumberNextEl,
-  paginationNumberBackEl,
-  paginationBtnNextEl,
-  paginationBtnBackEl,
+  sortingEl,
+  sortingBtnRecentEl,
+  sortingBtnRelevantEl,
 } from '../common.js';
 import renderJobList from './JobList.js';
-
-const renderPaginationButtons = () => {
-  // display back button if we are on page 2 or further
-  if (state.currentPage >= 2) {
-    paginationBtnBackEl.classList.remove('pagination__button--hidden');
-  } else {
-    paginationBtnBackEl.classList.add('pagination__button--hidden');
-  }
-
-  // display next button if there are more job items on next page
-  if (state.searchJobItems.length - state.currentPage * RESULTS_PER_PAGE <= 0) {
-    paginationBtnNextEl.classList.add('pagination__button--hidden');
-  } else {
-    paginationBtnNextEl.classList.remove('pagination__button--hidden');
-  }
-
-  // update page numbers
-  paginationNumberNextEl.textContent = state.currentPage + 1;
-  paginationNumberBackEl.textContent = state.currentPage - 1;
-
-  // unfocus ('blur') buttons
-  paginationBtnNextEl.blur();
-  paginationBtnBackEl.blur();
-};
+import renderPaginationButtons from './Pagination.js';
 
 const clickHandler = (event) => {
   // get clicked button element
-  const clickedButtonEl = event.target.closest('.pagination__button');
+  const clickedButtonEl = event.target.closest('.sorting__button');
 
-  // stop function if null
+  // stop function if no clicked button element
   if (!clickedButtonEl) return;
 
-  // check if intention is next or back
-  const nextPage = clickedButtonEl.className.includes('--next') ? true : false;
+  // update state (reset to page 1)
+  state.currentPage = 1;
 
-  // update state
-  nextPage ? state.currentPage++ : state.currentPage--;
+  // check if intention is recent or relevant sorting
+  const recent = clickedButtonEl.className.includes('--recent') ? true : false;
 
-  // render pagination buttons
+  // make sorting button look (in)active
+  if (recent) {
+    sortingBtnRecentEl.classList.add('sorting__button--active');
+    sortingBtnRelevantEl.classList.remove('sorting__button--active');
+  } else {
+    sortingBtnRecentEl.classList.remove('sorting__button--active');
+    sortingBtnRelevantEl.classList.add('sorting__button--active');
+  }
+
+  // sort job items
+  // how [].sort works: return positive number to sort b higher than a, return negative number to sort a higher than b, return 0 to stay same
+  if (recent) {
+    state.searchJobItems.sort((a, b) => {
+      return a.daysAgo - b.daysAgo; // e.g. if a.daysAgo = 10 and b.daysAgo = 5, then b is more recent. b should be sorted higher than a. return a positive number.
+    });
+  } else {
+    state.searchJobItems.sort((a, b) => {
+      return b.relevanceScore - a.relevanceScore; // e.g. if a.relevanceScore = 94 and b.relevanceScore = 78, then a is more relevant. a should be sorted higher than b. return a negative number.
+    });
+  }
+
+  // reset pagination buttons
   renderPaginationButtons();
 
-  // render job items for that page
+  // render job items in list
   renderJobList();
 };
 
-paginationEl.addEventListener('click', clickHandler);
-
-export default renderPaginationButtons;
+sortingEl.addEventListener('click', clickHandler);
